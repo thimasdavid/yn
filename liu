@@ -1,0 +1,164 @@
+import pygame
+import sys
+import random
+
+# 游戏初始化
+pygame.init()
+
+# 设置游戏窗口尺寸
+window_size = window_width, window_height = 800, 600
+window = pygame.display.set_mode(window_size)
+pygame.display.set_caption("坦克大战")
+
+# 设置颜色
+black = 0, 0, 0
+white = 255, 255, 255
+
+# 坦克相关参数
+tank_width, tank_height = 50, 50
+tank_speed = 5
+
+# 子弹相关参数
+bullet_width, bullet_height = 10, 10
+bullet_speed = 10
+
+# 玩家相关参数
+player_lives = 3
+
+# 创建坦克类
+class Tank:
+    def __init__(self, x, y, speed):
+        self.x = x
+        self.y = y
+        self.direction = "up"
+        self.speed = speed
+
+    def move(self):
+        if self.direction == "up":
+            self.y -= self.speed
+        elif self.direction == "down":
+            self.y += self.speed
+        elif self.direction == "left":
+            self.x -= self.speed
+        elif self.direction == "right":
+            self.x += self.speed
+
+    def display(self):
+        pygame.draw.rect(window, white, (self.x, self.y, tank_width, tank_height))
+
+    def change_direction(self, new_direction):
+        self.direction = new_direction
+
+    def shoot(self):
+        if self.direction == "up":
+            bullet = Bullet(self.x + tank_width / 2 - bullet_width / 2, self.y, "up", bullet_speed)
+        elif self.direction == "down":
+            bullet = Bullet(self.x + tank_width / 2 - bullet_width / 2, self.y + tank_height, "down", bullet_speed)
+        elif self.direction == "left":
+            bullet = Bullet(self.x, self.y + tank_height / 2 - bullet_height / 2, "left", bullet_speed)
+        elif self.direction == "right":
+            bullet = Bullet(self.x + tank_width, self.y + tank_height / 2 - bullet_height / 2, "right", bullet_speed)
+
+        bullets.append(bullet)
+
+# 创建子弹类
+class Bullet:
+    def __init__(self, x, y, direction, speed):
+        self.x = x
+        self.y = y
+        self.direction = direction
+        self.speed = speed
+
+    def move(self):
+        if self.direction == "up":
+            self.y -= self.speed
+        elif self.direction == "down":
+            self.y += self.speed
+        elif self.direction == "left":
+            self.x -= self.speed
+        elif self.direction == "right":
+            self.x += self.speed
+
+    def display(self):
+        pygame.draw.rect(window, white, (self.x, self.y, bullet_width, bullet_height))
+
+# 创建玩家坦克对象
+player_tank = Tank(375, 275, tank_speed)
+
+# 创建敌方坦克对象
+enemy_tanks = []
+for _ in range(3):
+    x = random.randint(0, window_width - tank_width)
+    y = random.randint(0, window_height - tank_height)
+    enemy_tank = Tank(x, y, tank_speed)
+    enemy_tanks.append(enemy_tank)
+
+# 子弹列表
+bullets = []
+
+# 游戏主循环
+while True:
+    # 处理事件
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            elif event.key == pygame.K_UP:
+                player_tank.change_direction("up")
+            elif event.key == pygame.K_DOWN:
+                player_tank.change_direction("down")
+            elif event.key == pygame.K_LEFT:
+                player_tank.change_direction("left")
+            elif event.key == pygame.K_RIGHT:
+                player_tank.change_direction("right")
+            elif event.key == pygame.K_SPACE:
+                player_tank.shoot()
+
+    # 移动和显示玩家坦克
+    player_tank.move()
+
+    # 移动和显示敌方坦克
+    for enemy_tank in enemy_tanks:
+        enemy_tank.move()
+        enemy_tank.display()
+        # 敌方坦克随机射击
+        if random.randint(0, 100) < 2:
+            enemy_tank.shoot()
+
+    # 移动和显示子弹
+    for bullet in bullets:
+        bullet.move()
+        bullet.display()
+
+    # 碰撞检测
+    for bullet in bullets:
+        # 玩家坦克和敌方坦克碰撞检测
+        for enemy_tank in enemy_tanks:
+            if pygame.Rect(enemy_tank.x, enemy_tank.y, tank_width, tank_height).colliderect(
+                    pygame.Rect(player_tank.x, player_tank.y, tank_width, tank_height)):
+                player_lives -= 1
+                print("Player Lives:", player_lives)
+                if player_lives <= 0:
+                    print("Game Over!")
+                    pygame.quit()
+                    sys.exit()
+
+        # 子弹和敌方坦克碰撞检测
+        for enemy_tank in enemy_tanks:
+            if pygame.Rect(enemy_tank.x, enemy_tank.y, tank_width, tank_height).colliderect(
+                    pygame.Rect(bullet.x, bullet.y, bullet_width, bullet_height)):
+                bullets.remove(bullet)
+                enemy_tanks.remove(enemy_tank)
+                break
+
+        # 子弹超出边界检测
+        if bullet.x < 0 or bullet.x > window_width or bullet.y < 0 or bullet.y > window_height:
+            bullets.remove(bullet)
+
+    window.fill(black)
+    player_tank.display()
+    pygame.display.flip()
